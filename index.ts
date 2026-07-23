@@ -177,36 +177,37 @@ app.get("/products/:id", async (req, res) => {
     });
 
 //     // Delete manageProduct route 
-//     app.delete("/api/products/:id", async (req, res) => {
-//       const id = req.params.id;
+    app.delete("/api/products/:id", async (req, res) => {
+      const id = req.params.id;
 
-//       const query = {
-//         _id: new ObjectId(id),
-//       };
+      const query = {
+        _id: new ObjectId(id),
+      };
 
-//       const result = await productsCollection.deleteOne(query);
+      const result = await productsCollection.deleteOne(query);
 
-//       res.send(result);
-//     });
+      res.send(result);
+    });
 
 //     // Update product route
-//     app.patch("/api/products-update/:id", async (req, res) => {
-//       const id = req.params.id;
+    app.patch("/api/products-update/:id", async (req, res) => {
+      const id = req.params.id;
 
-//       const updatedProduct = req.body;
+      const updatedProduct = req.body;
 
-//       const query = {
-//         _id: new ObjectId(id),
-//       };
+      const query = {
+        _id: new ObjectId(id),
+      };
 
-//       const updateDoc = {
-//         $set: updatedProduct,
-//       };
+      const updateDoc = {
+        $set: updatedProduct,
+      };
 
-//       const result = await productsCollection.updateOne(query, updateDoc);
+      const result = await productsCollection.updateOne(query, updateDoc);
 
-//       res.send(result);
-//     });
+      res.send(result);
+    });
+
 //     //  get user route
 //     app.get("/api/users", async (req, res) => {
 //       const result = await usersCollection.find().toArray();
