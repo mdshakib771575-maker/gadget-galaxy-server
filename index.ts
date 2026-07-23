@@ -208,24 +208,25 @@ app.get("/products/:id", async (req, res) => {
       res.send(result);
     });
 
-//     //  get user route
-//     app.get("/api/users", async (req, res) => {
-//       const result = await usersCollection.find().toArray();
+// get user route
+    app.get("/api/users", async (req, res) => {
+      const result = await usersCollection.find().toArray();
 
-//       res.send(result);
-//     });
+      res.send(result);
+    });
+    
+  // manage user delete route
+    app.delete("/api/users/:id", async (req, res) => {
+      const id = req.params.id;
 
-//     app.delete("/api/users/:id", async (req, res) => {
-//       const id = req.params.id;
+      const query = {
+        _id: new ObjectId(id),
+      };
 
-//       const query = {
-//         _id: new ObjectId(id),
-//       };
+      const result = await usersCollection.deleteOne(query);
 
-//       const result = await usersCollection.deleteOne(query);
-
-//       res.send(result);
-//     });
+      res.send(result);
+    });
 
 
 
