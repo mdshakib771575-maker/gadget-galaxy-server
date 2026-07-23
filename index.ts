@@ -148,33 +148,33 @@ app.get("/products/:id", async (req, res) => {
 
     // .....................Admin Route.....................
     // add product route
-//     app.post("/api/add-product", async (req: Request, res: Response) => {
-//       console.log(req)
-//       try {
-//         const productData: Product = {
-//           ...req.body,
-//           createdAt: new Date(),
-//         };
+    app.post("/api/add-product", async (req: Request, res: Response) => {
+      console.log(req)
+      try {
+        const productData: Product = {
+          ...req.body,
+          createdAt: new Date(),
+        };
 
-//         const result = await productsCollection.insertOne(productData);
+        const result = await productsCollection.insertOne(productData);
 
-//         res.send(result);
-//       } catch (error) {
-//         console.log(error);
+        res.send(result);
+      } catch (error) {
+        console.log(error);
 
-//         res.status(500).send({
-//           success: false,
-//           message: "Failed to add product.",
-//         });
-//       }
-//     });
+        res.status(500).send({
+          success: false,
+          message: "Failed to add product.",
+        });
+      }
+    });
 
-//     // get manageProduct route
-//     app.get("/api/manage-products", async (req: Request, res: Response) => {
-//       const result = await productsCollection.find().toArray();
+     // get manageProduct route
+    app.get("/api/manage-products", async (req: Request, res: Response) => {
+      const result = await productsCollection.find().toArray();
 
-//       res.send(result);
-//     });
+      res.send(result);
+    });
 
 //     // Delete manageProduct route 
 //     app.delete("/api/products/:id", async (req, res) => {
