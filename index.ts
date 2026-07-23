@@ -215,7 +215,7 @@ app.get("/products/:id", async (req, res) => {
       res.send(result);
     });
     
-  // manage user delete route
+  // manage user delete
     app.delete("/api/users/:id", async (req, res) => {
       const id = req.params.id;
 
@@ -230,42 +230,42 @@ app.get("/products/:id", async (req, res) => {
 
 
 
-//     // .............. user route ..........
-// // add order 
-// app.post("/api/orders", async (req, res) => {
-//   try {
-//     const orderData = req.body;
+    // .............. user route ..........
+// add order 
+app.post("/api/orders", async (req, res) => {
+  try {
+    const orderData = req.body;
 
-//     orderData.status = "Pending";
-//     orderData.createdAt = new Date();
+    orderData.status = "Pending";
+    orderData.createdAt = new Date();
 
-//     const result = await ordersCollection.insertOne(orderData);
+    const result = await ordersCollection.insertOne(orderData);
 
-//     res.send(result);
-//   } catch (error: any) {
-//     res.status(500).send({
-//       success: false,
-//       message: error.message,
-//     });
-//   }
-// });
-// // my order route
-// app.get("/api/orders/:email", async (req, res) => {
-//   const { email } = req.params;
+    res.send(result);
+  } catch (error: any) {
+    res.status(500).send({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+// my order route
+app.get("/api/orders/:email", async (req, res) => {
+  const { email } = req.params;
 
-//   try {
-//     const result = await ordersCollection .find({ userEmail: email })
-//       .sort({ createdAt: -1 })
-//       .toArray();
+  try {
+    const result = await ordersCollection .find({ userEmail: email })
+      .sort({ createdAt: -1 })
+      .toArray();
 
-//     res.send(result);
-//   } catch (error: any) {
-//     res.status(500).send({
-//       success: false,
-//       message: error.message,
-//     });
-//   }
-// });
+    res.send(result);
+  } catch (error: any) {
+    res.status(500).send({
+      success: false,
+      message: error.message,
+    });
+  }
+});
 
 
 
