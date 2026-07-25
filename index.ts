@@ -3,7 +3,8 @@ import cors from "cors";
 import dotenv from "dotenv";
 
 import { MongoClient, ObjectId, ServerApiVersion } from 'mongodb';
-import { Request, Response } from "express";
+import { Request, Response, NextFunction, } from "express";
+import { createRemoteJWKSet, jwtVerify } from "jose-cjs";
 
 interface Product {
   name: string;
@@ -49,106 +50,156 @@ export async function run() {
     const ordersCollection = db.collection("order")
 
 
+    //jwt 
+    const JWKS = createRemoteJWKSet(new URL(`${process.env.CLIENT_URL}/api/auth/jwks`));
 
-    app.get("/products", async (req, res) => {
-  const {
-    page = 1,
-    limit = 8,
-    search,
-    category,
-    brand,
-    sort,
-  } = req.query;
+    const verifyToken = async (
+      req: Request,
+      res: Response,
+      next: NextFunction
+    ): Promise<void> => {
+      const authHeader = req.headers.authorization;
 
-  const skip = (Number(page) - 1) * Number(limit);
+      if (
+        !authHeader ||
+        !authHeader.startsWith("Bearer ")
+      ) {
+        res.status(401).json({
+          message: "Unauthorized",
+        });
+        return;
+      }
 
-  const query: any = {};
+      const token = authHeader.split(" ")[1];
 
-  // Search by product name
-  if (search) {
-    query.name = {
-      $regex: search,
-      $options: "i",
+      if (!token) {
+        res.status(401).json({
+          message: "Token Unauthorized",
+        });
+        return;
+      }
+
+      try {
+        const { payload } = await jwtVerify(
+          token,
+          JWKS
+        );
+
+        console.log(payload);
+
+        next();
+      } catch (error) {
+        console.log(error);
+
+        res.status(401).json({
+          message: "Unauthorized",
+        });
+
+        return;
+      }
     };
-  }
 
-  // Filter by category
-  if (category) {
-    query.category = category;
-  }
 
-  // Filter by brand
-  if (brand) {
-    query.brand = brand;
-  }
+    
+    app.get("/products", async (req, res) => {
+      const {
+        page = 1,
+        limit = 8,
+        search,
+        category,
+        brand,
+        sort,
+      } = req.query;
 
-  // Sort products
-  let sortOption = {};
+      const skip = (Number(page) - 1) * Number(limit);
 
-  if (sort === "lowToHigh") {
-    sortOption = { price: 1 };
-  } else if (sort === "highToLow") {
-    sortOption = { price: -1 };
-  } else {
-    sortOption = { createdAt: -1 };
-  }
+      const query: any = {};
 
-  try {
-    const result = await productsCollection
-      .find(query)
-      .sort(sortOption)
-      .skip(skip)
-      .limit(Number(limit))
-      .toArray();
+      // Search by product name
+      if (search) {
+        query.name = {
+          $regex: search,
+          $options: "i",
+        };
+      }
 
-    const totalData =
-      await productsCollection.countDocuments(query);
+      // Filter by category
+      if (category) {
+        query.category = category;
+      }
 
-    const totalPage = Math.ceil(
-      totalData / Number(limit)
-    );
+      // Filter by brand
+      if (brand) {
+        query.brand = brand;
+      }
 
-    res.send({
-      data: result,
-      page: Number(page),
-      totalPage,
-      totalData,
+      // Sort products
+      let sortOption = {};
+
+      if (sort === "lowToHigh") {
+        sortOption = { price: 1 };
+      } else if (sort === "highToLow") {
+        sortOption = { price: -1 };
+      } else {
+        sortOption = { createdAt: -1 };
+      }
+
+      try {
+        const result = await productsCollection
+          .find(query)
+          .sort(sortOption)
+          .skip(skip)
+          .limit(Number(limit))
+          .toArray();
+
+        const totalData =
+          await productsCollection.countDocuments(query);
+
+        const totalPage = Math.ceil(
+          totalData / Number(limit)
+        );
+
+        res.send({
+          data: result,
+          page: Number(page),
+          totalPage,
+          totalData,
+        });
+      } catch (error: any) {
+        res.status(500).send({
+          success: false,
+          message: error.message,
+        });
+      }
     });
-  } catch (error: any) {
-    res.status(500).send({
-      success: false,
-      message: error.message,
+
+    app.get("/products/:id", async (req, res) => {
+      const { id } = req.params;
+
+      try {
+        const product = await productsCollection.findOne({
+          _id: new ObjectId(id),
+        });
+
+        if (!product) {
+          return res.status(404).send({
+            success: false,
+            message: "Product not found",
+          });
+        }
+
+        res.send(product);
+      } catch (error: any) {
+        res.status(500).send({
+          success: false,
+          message: error.message,
+        });
+      }
     });
-  }
-});
-
-app.get("/products/:id", async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    const product = await productsCollection.findOne({
-      _id: new ObjectId(id),
-    });
-
-    if (!product) {
-      return res.status(404).send({
-        success: false,
-        message: "Product not found",
-      });
-    }
-
-    res.send(product);
-  } catch (error: any) {
-    res.status(500).send({
-      success: false,
-      message: error.message,
-    });
-  }
-});
 
     // .....................Admin Route.....................
     // add product route
-    app.post("/api/add-product", async (req: Request, res: Response) => {
+    app.post("/api/add-product", verifyToken, async (req: Request, res: Response) => {
       console.log(req)
       try {
         const productData: Product = {
@@ -169,16 +220,16 @@ app.get("/products/:id", async (req, res) => {
       }
     });
 
-     // get manageProduct route
+    // get manageProduct route
     app.get("/api/manage-products", async (req: Request, res: Response) => {
       const result = await productsCollection.find().toArray();
 
       res.send(result);
     });
 
-//     // Delete manageProduct route 
-    app.delete("/api/products/:id", async (req, res) => {
-      const id = req.params.id;
+    //     // Delete manageProduct route 
+    app.delete("/api/products/:id", verifyToken, async (req, res) => {
+      const id = req.params.id as string;
 
       const query = {
         _id: new ObjectId(id),
@@ -189,9 +240,9 @@ app.get("/products/:id", async (req, res) => {
       res.send(result);
     });
 
-//     // Update product route
-    app.patch("/api/products-update/:id", async (req, res) => {
-      const id = req.params.id;
+    //     // Update product route
+    app.patch("/api/products-update/:id", verifyToken, async (req, res) => {
+      const id = req.params.id as string;
 
       const updatedProduct = req.body;
 
@@ -208,16 +259,16 @@ app.get("/products/:id", async (req, res) => {
       res.send(result);
     });
 
-// get user route
+    // get user route
     app.get("/api/users", async (req, res) => {
       const result = await usersCollection.find().toArray();
 
       res.send(result);
     });
-    
-  // manage user delete
-    app.delete("/api/users/:id", async (req, res) => {
-      const id = req.params.id;
+
+    // manage user delete
+    app.delete("/api/users/:id", verifyToken, async (req, res) => {
+      const id = req.params.id as string;
 
       const query = {
         _id: new ObjectId(id),
@@ -231,41 +282,41 @@ app.get("/products/:id", async (req, res) => {
 
 
     // .............. user route ..........
-// add order 
-app.post("/api/orders", async (req, res) => {
-  try {
-    const orderData = req.body;
+    // add order 
+    app.post("/api/orders", verifyToken, async (req, res) => {
+      try {
+        const orderData = req.body;
 
-    orderData.status = "Pending";
-    orderData.createdAt = new Date();
+        orderData.status = "Pending";
+        orderData.createdAt = new Date();
 
-    const result = await ordersCollection.insertOne(orderData);
+        const result = await ordersCollection.insertOne(orderData);
 
-    res.send(result);
-  } catch (error: any) {
-    res.status(500).send({
-      success: false,
-      message: error.message,
+        res.send(result);
+      } catch (error: any) {
+        res.status(500).send({
+          success: false,
+          message: error.message,
+        });
+      }
     });
-  }
-});
-// my order route
-app.get("/api/orders/:email", async (req, res) => {
-  const { email } = req.params;
+    // my order route
+    app.get("/api/orders/:email", async (req, res) => {
+      const { email } = req.params;
 
-  try {
-    const result = await ordersCollection .find({ userEmail: email })
-      .sort({ createdAt: -1 })
-      .toArray();
+      try {
+        const result = await ordersCollection.find({ userEmail: email })
+          .sort({ createdAt: -1 })
+          .toArray();
 
-    res.send(result);
-  } catch (error: any) {
-    res.status(500).send({
-      success: false,
-      message: error.message,
+        res.send(result);
+      } catch (error: any) {
+        res.status(500).send({
+          success: false,
+          message: error.message,
+        });
+      }
     });
-  }
-});
 
 
 
